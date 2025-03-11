@@ -50,23 +50,23 @@
             </li>
         </ul>
         <div class="tab-content" id="myTabContent">
-            <div class="tab-pane fade show active" id="list" role="tabpanel" aria-labelledby="list-tab">
+            <div class="tab-pane fade show" th:classappend=" ${listTab}" id="list" role="tabpanel" aria-labelledby="list-tab">
                 <div class="card">
                     <div class="card-header">
                         <h4>Roster</h4>
                     </div>
                     <div class="card-body">
-                        <div th:include="user-form/user-list.html" th:remove="tag"></div>
+                        <div th:insert="~{user-form/user-list.html}" th:remove="tag"></div>
                     </div>
                 </div>
             </div>
-            <div class="tab-pane fade" id="form" role="tabpanel" aria-labelledby="form-tab">
+            <div class="tab-pane fade show" th:classappend=" ${formTab}" id="form" role="tabpanel" aria-labelledby="form-tab">
                 <div class="card">
                     <div class="card-header">
                         <h4>User Information</h4>
                     </div>
                     <div class="card-body">
-                        <div th:include="user-form/user-form.html" th:remove="tag"></div>
+                        <div th:insert="~{user-form/user-form.html}" th:remove="tag"></div>
                     </div>
                 </div>
             </div>

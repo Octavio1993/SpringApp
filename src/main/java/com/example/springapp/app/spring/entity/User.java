@@ -1,6 +1,9 @@
 package com.example.springapp.app.spring.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.io.Serializable;
@@ -15,25 +18,33 @@ public class User implements Serializable {
     private Long id;
 
     @Column
+    @NotBlank //que no sea nulo y que no sea un string vacio
+    @Size(min=3,max=15,message="El nombre ingresado debe tener como minimo 3 letras y un maximo de 15")
     private String nombre;
 
     @Column
+    @NotBlank
     private String apellido;
 
     @Column(unique = true)
+    @Email
+    @NotBlank
     private String email;
 
     @Column(unique = true)
+    @NotBlank
     private String userName;
 
     @Column
+    @NotBlank
     private String password;
 
     @Transient //necesaria cuando queremos tener campos en nuestra entidad pero no queremos que tenga ninguna relación
     // con la tabla de la base de datos.
-
+    @NotBlank
     private String confirmarPassword;
 
+    @Size(min = 1)
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "user_roles"
             ,joinColumns = @JoinColumn(name = "user_id")
