@@ -36,12 +36,10 @@ public class User implements Serializable {
     private String userName;
 
     @Column
-    @NotBlank
     private String password;
 
     @Transient //necesaria cuando queremos tener campos en nuestra entidad pero no queremos que tenga ninguna relación
     // con la tabla de la base de datos.
-    @NotBlank
     private String confirmarPassword;
 
     @Size(min = 1)

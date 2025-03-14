@@ -27,6 +27,10 @@ public class UserServiceImpl implements UserService{
     }
 
     private boolean checkPasswordValid(User user) throws Exception{
+        if (user.getConfirmarPassword() == null || user.getConfirmarPassword().isEmpty()) {
+            throw new Exception("Confirm Password es obligatorio");
+        }
+
         if (!user.getPassword().equals(user.getConfirmarPassword())){
             throw new Exception("Las contraseñas deben ser iguales");
         }
@@ -40,5 +44,28 @@ public class UserServiceImpl implements UserService{
         }
 
         return user;
+    }
+
+    @Override
+    public User getUserById(Long id) throws Exception {
+        return userRepository.findById(id).orElseThrow(() -> new Exception("El usuario no existe"));
+    }
+
+    @Override
+    public User updateUser(User fromUser) throws Exception {
+        User toUser = getUserById(fromUser.getId());
+        mapUser(fromUser, toUser);
+
+        System.out.println("Guardando usuario: " + toUser); // DEBUG
+
+        return userRepository.save(toUser);
+    }
+
+    protected void mapUser(User from, User to){
+        to.setNombre(from.getNombre());
+        to.setApellido(from.getApellido());
+        to.setUserName(from.getUserName());
+        to.setEmail(from.getEmail());
+        to.setRoles(from.getRoles());
     }
 }

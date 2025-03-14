@@ -11,6 +11,7 @@ import org.springframework.ui.ModelMap;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
 @Controller
@@ -60,5 +61,57 @@ public class UserController {
         model.addAttribute("userList",userService.getAllUsers());
 
         return "user-form/user-view";
+    }
+
+    @GetMapping("/editUser/{id}")
+    public String getEditUserForm(Model model, @PathVariable(name = "id") Long id) throws Exception{
+        User userToEdit = userService.getUserById(id);
+
+        model.addAttribute("userForm", userToEdit);
+        model.addAttribute("roles", roleRepository.findAll());
+        model.addAttribute("userList",userService.getAllUsers());
+        model.addAttribute("formTab","active");
+
+        model.addAttribute("editMode", "true");
+
+        return "user-form/user-view";
+    }
+
+    @PostMapping("/editUser")
+    public String postEditUserForm(@Valid @ModelAttribute("userForm")User user, BindingResult result, ModelMap model) {
+
+        System.out.println("ID recibido: " + user.getId()); // DEBUG
+
+        if (result.hasErrors()){
+
+            System.out.println("Errores de validación:");
+            result.getAllErrors().forEach(error -> System.out.println(error.toString()));
+
+            model.addAttribute("userForm", user);
+            model.addAttribute("formTab","active");
+            model.addAttribute("editMode", "true");
+        } else {
+            try {
+                userService.updateUser(user);
+                model.addAttribute("userForm", new User());
+                model.addAttribute("listTab","active");
+            } catch (Exception e){
+                model.addAttribute("formErrorMessage", e.getMessage());
+                model.addAttribute("userForm", user);
+                model.addAttribute("formTab","active");
+                model.addAttribute("roles", roleRepository.findAll());
+                model.addAttribute("userList",userService.getAllUsers());
+                model.addAttribute("editMode", "true");
+            }
+        }
+        model.addAttribute("roles", roleRepository.findAll());
+        model.addAttribute("userList",userService.getAllUsers());
+
+        return "user-form/user-view";
+    }
+
+    @GetMapping("/userForm/cancel")
+    public String cancelEditUser(ModelMap model) {
+        return "redirect:/userForm";
     }
 }
