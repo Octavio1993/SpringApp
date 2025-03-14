@@ -32,45 +32,45 @@ public class UserController {
     public String userForm(Model model) {
         model.addAttribute("userForm", new User());
         model.addAttribute("roles", roleRepository.findAll());
-        model.addAttribute("userList",userService.getAllUsers());
-        model.addAttribute("listTab","active");
+        model.addAttribute("userList", userService.getAllUsers());
+        model.addAttribute("listTab", "active");
         return "user-form/user-view";
     }
 
     @PostMapping("/userForm")
-    public String createUser (@Valid @ModelAttribute("userForm")User user, BindingResult result, ModelMap model){
-        if (result.hasErrors()){
+    public String createUser(@Valid @ModelAttribute("userForm") User user, BindingResult result, ModelMap model) {
+        if (result.hasErrors()) {
             model.addAttribute("userForm", user);
-            model.addAttribute("formTab","active");
+            model.addAttribute("formTab", "active");
             model.addAttribute("formErrorMessage", null);
         } else {
             try {
                 userService.createUser(user);
                 model.addAttribute("userForm", new User());
-                model.addAttribute("listTab","active");
+                model.addAttribute("listTab", "active");
                 model.addAttribute("formErrorMessage", null);
-            } catch (Exception e){
+            } catch (Exception e) {
                 model.addAttribute("formErrorMessage", e.getMessage());
                 model.addAttribute("userForm", user);
-                model.addAttribute("formTab","active");
+                model.addAttribute("formTab", "active");
                 model.addAttribute("roles", roleRepository.findAll());
-                model.addAttribute("userList",userService.getAllUsers());
+                model.addAttribute("userList", userService.getAllUsers());
             }
         }
         model.addAttribute("roles", roleRepository.findAll());
-        model.addAttribute("userList",userService.getAllUsers());
+        model.addAttribute("userList", userService.getAllUsers());
 
         return "user-form/user-view";
     }
 
     @GetMapping("/editUser/{id}")
-    public String getEditUserForm(Model model, @PathVariable(name = "id") Long id) throws Exception{
+    public String getEditUserForm(Model model, @PathVariable(name = "id") Long id) throws Exception {
         User userToEdit = userService.getUserById(id);
 
         model.addAttribute("userForm", userToEdit);
         model.addAttribute("roles", roleRepository.findAll());
-        model.addAttribute("userList",userService.getAllUsers());
-        model.addAttribute("formTab","active");
+        model.addAttribute("userList", userService.getAllUsers());
+        model.addAttribute("formTab", "active");
 
         model.addAttribute("editMode", "true");
 
@@ -78,34 +78,34 @@ public class UserController {
     }
 
     @PostMapping("/editUser")
-    public String postEditUserForm(@Valid @ModelAttribute("userForm")User user, BindingResult result, ModelMap model) {
+    public String postEditUserForm(@Valid @ModelAttribute("userForm") User user, BindingResult result, ModelMap model) {
 
         System.out.println("ID recibido: " + user.getId()); // DEBUG
 
-        if (result.hasErrors()){
+        if (result.hasErrors()) {
 
             System.out.println("Errores de validación:");
             result.getAllErrors().forEach(error -> System.out.println(error.toString()));
 
             model.addAttribute("userForm", user);
-            model.addAttribute("formTab","active");
+            model.addAttribute("formTab", "active");
             model.addAttribute("editMode", "true");
         } else {
             try {
                 userService.updateUser(user);
                 model.addAttribute("userForm", new User());
-                model.addAttribute("listTab","active");
-            } catch (Exception e){
+                model.addAttribute("listTab", "active");
+            } catch (Exception e) {
                 model.addAttribute("formErrorMessage", e.getMessage());
                 model.addAttribute("userForm", user);
-                model.addAttribute("formTab","active");
+                model.addAttribute("formTab", "active");
                 model.addAttribute("roles", roleRepository.findAll());
-                model.addAttribute("userList",userService.getAllUsers());
+                model.addAttribute("userList", userService.getAllUsers());
                 model.addAttribute("editMode", "true");
             }
         }
         model.addAttribute("roles", roleRepository.findAll());
-        model.addAttribute("userList",userService.getAllUsers());
+        model.addAttribute("userList", userService.getAllUsers());
 
         return "user-form/user-view";
     }
@@ -113,5 +113,17 @@ public class UserController {
     @GetMapping("/userForm/cancel")
     public String cancelEditUser(ModelMap model) {
         return "redirect:/userForm";
+    }
+
+    @GetMapping("/deleteUser/{id}")
+    public String deleteUser(Model model, @PathVariable(name = "id") Long id) {
+        try {
+            userService.deleteUser(id);
+            model.addAttribute("deleteSuccess", "Usuario eliminado correctamente.");
+        } catch (Exception e) {
+            model.addAttribute("deleteError", e.getMessage());
+        }
+
+        return userForm(model);
     }
 }

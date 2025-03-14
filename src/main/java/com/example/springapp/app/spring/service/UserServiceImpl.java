@@ -8,38 +8,38 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 
 @Service
-public class UserServiceImpl implements UserService{
+public class UserServiceImpl implements UserService {
     @Autowired
     UserRepository userRepository;
 
     @Override
-    public Iterable<User> getAllUsers(){
+    public Iterable<User> getAllUsers() {
         return userRepository.findAll();
     }
 
-    private boolean checkUsernameAvailable(User user) throws Exception{
+    private boolean checkUsernameAvailable(User user) throws Exception {
         Optional<User> userFound = userRepository.findByUserName(user.getUserName());
 
-        if (userFound.isPresent()){
+        if (userFound.isPresent()) {
             throw new Exception("Nombre de usuario no disponible");
         }
         return true;
     }
 
-    private boolean checkPasswordValid(User user) throws Exception{
+    private boolean checkPasswordValid(User user) throws Exception {
         if (user.getConfirmarPassword() == null || user.getConfirmarPassword().isEmpty()) {
             throw new Exception("Confirm Password es obligatorio");
         }
 
-        if (!user.getPassword().equals(user.getConfirmarPassword())){
+        if (!user.getPassword().equals(user.getConfirmarPassword())) {
             throw new Exception("Las contraseñas deben ser iguales");
         }
         return true;
     }
 
     @Override
-    public User createUser(User user) throws Exception{
-        if (checkUsernameAvailable(user) && checkPasswordValid(user)){
+    public User createUser(User user) throws Exception {
+        if (checkUsernameAvailable(user) && checkPasswordValid(user)) {
             user = userRepository.save(user);
         }
 
@@ -61,7 +61,20 @@ public class UserServiceImpl implements UserService{
         return userRepository.save(toUser);
     }
 
-    protected void mapUser(User from, User to){
+    @Override
+    public void deleteUser(Long id) throws Exception {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> {
+                    System.out.println("Usuario con ID " + id + " no encontrado."); // Verifica en consola
+                    return new Exception("Usuario no encontrado - " + this.getClass().getName());
+                });
+        /*User user = userRepository.findById(id)
+                .orElseThrow(() -> new Exception("Usuario no encontrado -"+this.getClass().getName()));
+        */
+        userRepository.delete(user);
+    }
+
+    protected void mapUser(User from, User to) {
         to.setNombre(from.getNombre());
         to.setApellido(from.getApellido());
         to.setUserName(from.getUserName());
