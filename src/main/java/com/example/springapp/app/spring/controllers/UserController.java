@@ -7,6 +7,9 @@ import com.example.springapp.app.spring.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.ui.ModelMap;
@@ -24,7 +27,7 @@ public class UserController {
     @Autowired
     UserService userService;
 
-    @GetMapping("/home")
+    @GetMapping("/login")
     public String index() {
         System.out.println("HOLA OCTAVIO DESDE EL HOME");
         return "index";
@@ -32,14 +35,21 @@ public class UserController {
 
     @GetMapping("/userForm")
     public String userForm(Model model) {
-        model.addAttribute("userForm", new User());
-        model.addAttribute("roles", roleRepository.findAll());
+//        model.addAttribute("userForm", new User());
+//        model.addAttribute("roles", roleRepository.findAll());
         model.addAttribute("userList", userService.getAllUsers());
         model.addAttribute("listTab", "active");
+
+        if (isAdmin()) {
+            model.addAttribute("userForm", new User());
+            model.addAttribute("roles", roleRepository.findAll());
+        }
+
         return "user-form/user-view";
     }
 
     @PostMapping("/userForm")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public String createUser(@Valid @ModelAttribute("userForm") User user, BindingResult result, ModelMap model) {
         if (result.hasErrors()) {
             model.addAttribute("userForm", user);
@@ -65,9 +75,43 @@ public class UserController {
         return "user-form/user-view";
     }
 
+    @GetMapping("/myProfile")
+    public String getMyProfile(Model model) throws Exception {
+        // Obtener el nombre de usuario actual
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+
+        // Buscar el usuario en la base de datos por nombre de usuario
+        User currentUser = userService.getUserByUsername(username);
+
+        if (currentUser == null) {
+            throw new Exception("Usuario no encontrado");
+        }
+
+        // Configurar el modelo para la vista de edición
+        model.addAttribute("userForm", currentUser);
+        model.addAttribute("roles", roleRepository.findAll());
+        model.addAttribute("userList", userService.getAllUsers());
+        model.addAttribute("formTab", "active");
+        model.addAttribute("editMode", "true");
+        model.addAttribute("passwordForm", new ChangePasswordForm(currentUser.getId()));
+
+        // Si es un usuario regular, desactivar los campos que no debería editar
+        if (!isAdmin()) {
+            model.addAttribute("disableFields", "true");
+        }
+
+        return "user-form/user-view";
+    }
+
     @GetMapping("/editUser/{id}")
     public String getEditUserForm(Model model, @PathVariable(name = "id") Long id) throws Exception {
         User userToEdit = userService.getUserById(id);
+
+        // Verificar si el usuario actual tiene permiso para editar este usuario
+        if (!isAdminOrSameUser(userToEdit)) {
+            return "redirect:/userForm?accessDenied";
+        }
 
         model.addAttribute("userForm", userToEdit);
         model.addAttribute("roles", roleRepository.findAll());
@@ -76,42 +120,93 @@ public class UserController {
         model.addAttribute("editMode", "true");
         model.addAttribute("passwordForm", new ChangePasswordForm(id));
 
+        // Si es un usuario regular editando su propio perfil, deshabilitar campos específicos
+        if (!isAdmin() && isSameUser(userToEdit)) {
+            model.addAttribute("disableFields", "true");
+        }
+
         return "user-form/user-view";
     }
 
     @PostMapping("/editUser")
     public String postEditUserForm(@Valid @ModelAttribute("userForm") User user, BindingResult result, ModelMap model) {
+        try {
+            // Verificar si el usuario actual tiene permiso para editar este usuario
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String currentUsername = auth.getName();
 
-        System.out.println("ID recibido: " + user.getId()); // DEBUG
+            User existingUser = userService.getUserById(user.getId());
+            boolean isAdmin = auth.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+            boolean isSameUser = existingUser.getUserName().equals(currentUsername);
 
-        if (result.hasErrors()) {
+            // Solo permitir si es admin o el mismo usuario
+            if (!isAdmin && !isSameUser) {
+                return "redirect:/userForm?accessDenied";
+            }
 
-            System.out.println("Errores de validación:");
-            result.getAllErrors().forEach(error -> System.out.println(error.toString()));
+            // Si hay errores de validación
+            if (result.hasErrors()) {
+                model.addAttribute("userForm", user);
+                model.addAttribute("formTab", "active");
+                model.addAttribute("editMode", "true");
+                model.addAttribute("passwordForm", new ChangePasswordForm(user.getId()));
+                model.addAttribute("roles", roleRepository.findAll());
+                model.addAttribute("userList", userService.getAllUsers());
+                return "user-form/user-view";
+            }
 
+            // Si es un usuario normal (no admin), mantener los roles existentes
+            if (!isAdmin && isSameUser) {
+                user.setRoles(existingUser.getRoles());
+            }
+
+            // Si estamos en modo edición, la contraseña viene como "xxxx" desde el form
+            // por lo que debemos mantener la contraseña existente
+            if (user.getPassword().equals("xxxx")) {
+                user.setPassword(existingUser.getPassword());
+            }
+
+            userService.updateUser(user);
+
+            // Después de guardar, redirigir según el tipo de usuario
+            if (isAdmin) {
+                model.addAttribute("userForm", new User());
+                model.addAttribute("listTab", "active");
+            } else {
+                // Si es usuario normal, redirigir a su perfil
+                return "redirect:/myProfile?success";
+            }
+
+        } catch (Exception e) {
+            model.addAttribute("formErrorMessage", e.getMessage());
             model.addAttribute("userForm", user);
             model.addAttribute("formTab", "active");
             model.addAttribute("editMode", "true");
             model.addAttribute("passwordForm", new ChangePasswordForm(user.getId()));
-        } else {
-            try {
-                userService.updateUser(user);
-                model.addAttribute("userForm", new User());
-                model.addAttribute("listTab", "active");
-            } catch (Exception e) {
-                model.addAttribute("formErrorMessage", e.getMessage());
-                model.addAttribute("userForm", user);
-                model.addAttribute("formTab", "active");
-                model.addAttribute("roles", roleRepository.findAll());
-                model.addAttribute("userList", userService.getAllUsers());
-                model.addAttribute("editMode", "true");
-                model.addAttribute("passwordForm", new ChangePasswordForm(user.getId()));
-            }
         }
+
         model.addAttribute("roles", roleRepository.findAll());
         model.addAttribute("userList", userService.getAllUsers());
-
         return "user-form/user-view";
+    }
+
+    // Método para verificar si es administrador o el mismo usuario
+    private boolean isAdminOrSameUser(User user) {
+        return isAdmin() || isSameUser(user);
+    }
+
+    // Método para verificar si es el mismo usuario
+    private boolean isSameUser(User user) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getName().equals(user.getUserName());
+    }
+
+    // Método para verificar si es administrador
+    private boolean isAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 
     @GetMapping("/userForm/cancel")
@@ -148,4 +243,6 @@ public class UserController {
         }
         return ResponseEntity.ok("success");
     }
+
+
 }

@@ -1,10 +1,10 @@
-<form form class="form" role="form" autocomplete="off" th:object="${userForm}"
+<form class="form" role="form" autocomplete="off" th:object="${userForm}"
       th:action="${editMode} ? @{/editUser} : @{/userForm}" method="post" xmlns:th="http://www.w3.org/1999/xhtml">
 
-    <!--Es necesario para poder pasar la validacion del Model-->
-    <input class="form-control" type=hidden th:field="${userForm.id}" th:if="${editMode}">
-    <input class="form-control" type=hidden name="password" value="xxxx" th:if="${editMode}">
-    <input class="form-control" type=hidden name="confirmPassword" value="xxxx" th:if="${editMode}">
+    <!--Es necesario para poder pasar la validación del Model-->
+    <input class="form-control" type="hidden" th:field="${userForm.id}" th:if="${editMode}">
+    <input class="form-control" type="hidden" name="password" value="xxxx" th:if="${editMode}">
+    <input class="form-control" type="hidden" name="confirmarPassword" value="xxxx" th:if="${editMode}">
 
     <div class="form-group row">
         <label class="col-lg-3 col-form-label form-control-label">First name</label>
@@ -34,7 +34,7 @@
             <div class="alert-danger" th:if="${#fields.hasErrors('userName')}" th:errors="*{userName}">Name Error</div>
         </div>
     </div>
-    <div class="form-group row">
+    <div class="form-group row" th:if="${#authorization.expression('hasRole(''ROLE_ADMIN'')')}">
         <label th:text="Roles" class="col-lg-3 col-form-label form-control-label"></label>
         <div class="col-lg-9">
             <select class="form-control" size="3" th:field="${userForm.roles}">
@@ -63,11 +63,15 @@
     <div class="form-group row">
         <div class="col-lg-12 text-center">
             <a class="btn btn-secondary" th:href="@{'/userForm/cancel'}">Cancel</a>
-            <button type="button" class="btn btn-secondary" data-toggle="modal" th:if="${editMode}" data-target="#changePasswordModal">Change Password</button>
+            <button type="button" class="btn btn-secondary" data-toggle="modal" th:if="${editMode}"
+                    data-target="#changePasswordModal">Change Password
+            </button>
             <input type="submit" class="btn btn-primary"
                    value="Save Changes" th:value="${editMode} ? 'Save User':'Create User'">
         </div>
     </div>
     <div class="alert-danger text-center" th:if="${formErrorMessage}" th:text="${formErrorMessage}">Error Message</div>
-    <div class="alert-success text-center d-none" id="formSuccess" th:if="${editMode}">Success Message</div>
+    <div class="alert-success text-center" th:if="${param.success}" th:text="'Cambios guardados correctamente'">Success
+        Message
+    </div>
 </form>

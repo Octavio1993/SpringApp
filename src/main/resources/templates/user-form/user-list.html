@@ -18,9 +18,14 @@
             <td th:text="${user.userName}"></td>
             <td th:text="${user.email}"></td>
             <td>
+                <span th:if="${#authorization.expression('hasRole(''ROLE_ADMIN'')') or (#authorization.expression('hasRole(''ROLE_USER'')') and #authentication.principal.username==user.userName)}">
+                <!--<span th:if="${#authorization.expression('hasRole(''ROLE_ADMIN'')')} or (${#authorization.expression('hasRole(''ROLE_USER'')')} and ${#httpServletRequest.remoteUser==user.userName})">-->
                 <a href="#" th:href="@{'/editUser/'+ ${user.id}}"><i class="fas fa-edit"></i></a>
+                </span>
+                <span th:if="${#authorization.expression('hasRole(''ROLE_ADMIN'')')}">
                 <a href="#" th:onclick="'javascript:confirmDelete(\''+ ${user.id} +'\');'"><i
                         class="fas fa-user-times"></i></a>
+                </span>
             </td>
         </tr>
         </tbody>

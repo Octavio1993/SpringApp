@@ -4,6 +4,10 @@ import com.example.springapp.app.spring.dto.ChangePasswordForm;
 import com.example.springapp.app.spring.entity.User;
 import com.example.springapp.app.spring.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -12,6 +16,9 @@ import java.util.Optional;
 public class UserServiceImpl implements UserService {
     @Autowired
     UserRepository userRepository;
+
+    @Autowired
+    BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Override
     public Iterable<User> getAllUsers() {
@@ -41,6 +48,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public User createUser(User user) throws Exception {
         if (checkUsernameAvailable(user) && checkPasswordValid(user)) {
+            String encodePassword = bCryptPasswordEncoder.encode(user.getPassword());
+            user.setPassword(encodePassword);
+
             user = userRepository.save(user);
         }
 
@@ -63,6 +73,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     public void deleteUser(Long id) throws Exception {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> {
@@ -82,7 +93,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new Exception("UsernotFound in ChangePassword -"+this.getClass().getName()));
 
         //verifico que la contraseña actual sea igual a la de la base de datos
-        if (!form.getCurrentPassword().equals(storedUser.getPassword())) {
+        if ( !isLoggedUserADMIN() && !storedUser.getPassword().equals(form.getCurrentPassword())) {
             throw new IllegalArgumentException("Current Password Incorrect.");
         }
 
@@ -96,8 +107,28 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("New Password and Confirm Password does not match!");
         }
 
-        storedUser.setPassword(form.getNewPassword());
+        String encodePassword = bCryptPasswordEncoder.encode(form.getNewPassword());
+        storedUser.setPassword(encodePassword);
         return userRepository.save(storedUser);
+    }
+
+    @Override
+    public User getUserByUsername(String username) throws Exception {
+        return userRepository.findByUserName(username)
+                .orElseThrow(() -> new Exception("El usuario no existe"));
+    }
+
+    private boolean isLoggedUserADMIN() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        UserDetails loggedUser = null;
+        if (principal instanceof UserDetails) {
+            loggedUser = (UserDetails) principal;
+
+            loggedUser.getAuthorities().stream()
+                    .filter(x -> "ADMIN".equals(x.getAuthority() ))
+                    .findFirst().orElse(null); //loggedUser = null;
+        }
+        return loggedUser != null ?true :false;
     }
 
     protected void mapUser(User from, User to) {

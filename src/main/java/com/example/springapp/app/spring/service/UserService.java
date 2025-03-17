@@ -16,4 +16,6 @@ public interface UserService {
     public void deleteUser(Long id) throws Exception;
 
     public User changePassword(ChangePasswordForm form) throws Exception;
+
+    public User getUserByUsername(String username) throws Exception;
 }
