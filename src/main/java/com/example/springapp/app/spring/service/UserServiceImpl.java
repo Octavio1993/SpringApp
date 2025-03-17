@@ -1,5 +1,6 @@
 package com.example.springapp.app.spring.service;
 
+import com.example.springapp.app.spring.dto.ChangePasswordForm;
 import com.example.springapp.app.spring.entity.User;
 import com.example.springapp.app.spring.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +73,31 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new Exception("Usuario no encontrado -"+this.getClass().getName()));
         */
         userRepository.delete(user);
+    }
+
+    @Override
+    public User changePassword(ChangePasswordForm form) throws Exception {
+        User storedUser = userRepository
+                .findById( form.getId() )
+                .orElseThrow(() -> new Exception("UsernotFound in ChangePassword -"+this.getClass().getName()));
+
+        //verifico que la contraseña actual sea igual a la de la base de datos
+        if (!form.getCurrentPassword().equals(storedUser.getPassword())) {
+            throw new IllegalArgumentException("Current Password Incorrect.");
+        }
+
+        //verifico que la contraseña nueva sea distinta a la actual
+        if ( form.getCurrentPassword().equals(form.getNewPassword())) {
+            throw new IllegalArgumentException("New Password must be different than Current Password!");
+        }
+
+        //verifico que la contraseña nueva sea igual a la contraseña que quiero confirmar
+        if( !form.getNewPassword().equals(form.getConfirmPassword())) {
+            throw new IllegalArgumentException("New Password and Confirm Password does not match!");
+        }
+
+        storedUser.setPassword(form.getNewPassword());
+        return userRepository.save(storedUser);
     }
 
     protected void mapUser(User from, User to) {
