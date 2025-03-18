@@ -24,7 +24,7 @@ public class WebSecurityConfig {
         http
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(resources).permitAll()
-                        .requestMatchers("/", "/index").permitAll()
+                        .requestMatchers("/", "/index", "/signup").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

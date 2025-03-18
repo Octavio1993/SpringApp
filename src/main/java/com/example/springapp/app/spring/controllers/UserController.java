@@ -1,7 +1,9 @@
 package com.example.springapp.app.spring.controllers;
 
 import com.example.springapp.app.spring.dto.ChangePasswordForm;
+import com.example.springapp.app.spring.entity.Role;
 import com.example.springapp.app.spring.entity.User;
+import com.example.springapp.app.spring.exception.CustomeFieldValidationException;
 import com.example.springapp.app.spring.repository.RoleRepository;
 import com.example.springapp.app.spring.service.UserService;
 import jakarta.validation.Valid;
@@ -17,6 +19,9 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Controller
@@ -244,5 +249,37 @@ public class UserController {
         return ResponseEntity.ok("success");
     }
 
+    @GetMapping("/signup")
+    public String signUp (Model model) {
+        Optional<Role> userRole = roleRepository.findByNombre("USER");
+        List<Optional<Role>> roles = Arrays.asList(userRole);
 
+        model.addAttribute("signup",true);
+        model.addAttribute("userForm", new User());
+        model.addAttribute("roles",roles);
+
+        return "user-form/user-signup";
+    }
+
+    @PostMapping("/signup")
+    public String signupAction(@Valid @ModelAttribute("userForm")User user, BindingResult result, ModelMap model) {
+        Optional<Role> userRole = roleRepository.findByNombre("USER");
+        List<Optional<Role>> roles = Arrays.asList(userRole);
+        model.addAttribute("userForm", user);
+        model.addAttribute("roles",roles);
+        model.addAttribute("signup",true);
+
+        if(result.hasErrors()) {
+            return "user-form/user-signup";
+        }else {
+            try {
+                userService.createUser(user);
+            } catch (CustomeFieldValidationException cfve) {
+                result.rejectValue(cfve.getFieldName(), null, cfve.getMessage());
+            }catch (Exception e) {
+                model.addAttribute("formErrorMessage",e.getMessage());
+            }
+        }
+        return index();
+    }
 }
