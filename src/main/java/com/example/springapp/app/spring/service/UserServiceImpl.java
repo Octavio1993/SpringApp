@@ -59,7 +59,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User getUserById(Long id) throws Exception {
-        return userRepository.findById(id).orElseThrow(() -> new Exception("El usuario no existe"));
+        return userRepository.findById(id).orElseThrow(() -> new Exception("El ID del usuario no existe"));
     }
 
     @Override
